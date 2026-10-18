@@ -63,6 +63,139 @@ function formatDateDisplay(date) {
   return `${date.getUTCDate()} ${months[date.getUTCMonth()]} ${date.getUTCFullYear()}`;
 }
 
+/**
+ * Safely creates a reservation within an ACID MongoDB transaction.
+ * Uses atomic version increment on the parent Listing document to serialize
+ * concurrent reservation requests for the same listing and eliminate phantom insert races.
+ *
+ * Automatically retries up to maxAttempts on TransientTransactionError / WriteConflict.
+ * If the MongoDB deployment does not support transactions, safely fails without unsafe non-transactional fallback.
+ *
+ * @param {Object} params
+ * @param {mongoose.Types.ObjectId|string} params.listingId
+ * @param {mongoose.Types.ObjectId|string} params.userId
+ * @param {Date} params.checkInDate
+ * @param {Date} params.checkOutDate
+ * @param {number} params.guestsNum
+ * @param {number} params.totalPrice
+ * @param {number} [params.maxAttempts=3]
+ * @returns {Promise<{ success: boolean, reservation?: Object, reason?: string, error?: Error }>}
+ */
+async function createReservationWithRetry({
+  listingId,
+  userId,
+  checkInDate,
+  checkOutDate,
+  guestsNum,
+  totalPrice,
+  maxAttempts = 3,
+}) {
+  let attempt = 0;
+
+  while (attempt < maxAttempts) {
+    attempt++;
+    let session = null;
+
+    try {
+      session = await mongoose.startSession();
+      session.startTransaction();
+
+      // 1. Acquire write lock on parent listing via atomic version increment.
+      // In WiredTiger snapshot isolation, this creates a write conflict for any concurrent transaction on the same listing,
+      // preventing two concurrent transactions from both reading 0 overlapping reservations and inserting duplicates.
+      const updateResult = await Listing.updateOne(
+        { _id: listingId },
+        { $inc: { reservationVersion: 1 } }
+      ).session(session);
+
+      if (updateResult.matchedCount === 0) {
+        await session.abortTransaction();
+        session.endSession();
+        return { success: false, reason: "NOT_FOUND" };
+      }
+
+      // 2. Query for active overlapping reservations within the serialized transaction snapshot.
+      // Overlap condition: existing.checkIn < requested.checkOut AND existing.checkOut > requested.checkIn
+      const conflict = await Reservation.findOne({
+        listing: listingId,
+        status: "CONFIRMED",
+        checkIn: { $lt: checkOutDate },
+        checkOut: { $gt: checkInDate },
+      }).session(session);
+
+      if (conflict) {
+        await session.abortTransaction();
+        session.endSession();
+        return { success: false, reason: "UNAVAILABLE" };
+      }
+
+      // 3. Create and save the new confirmed reservation associated with the authenticated user
+      const newReservation = new Reservation({
+        listing: listingId,
+        user: userId,
+        checkIn: checkInDate,
+        checkOut: checkOutDate,
+        guests: guestsNum,
+        totalPrice,
+        status: "CONFIRMED",
+      });
+
+      const savedReservation = await newReservation.save({ session });
+      await session.commitTransaction();
+      session.endSession();
+
+      return { success: true, reservation: savedReservation };
+    } catch (err) {
+      if (session) {
+        try {
+          await session.abortTransaction();
+        } catch (_) {}
+        try {
+          session.endSession();
+        } catch (_) {}
+      }
+
+      // Identify transient transaction errors: WriteConflict (code 112) or TransientTransactionError label
+      const isTransient =
+        (err.errorLabels && err.errorLabels.includes("TransientTransactionError")) ||
+        (typeof err.hasErrorLabel === "function" && err.hasErrorLabel("TransientTransactionError")) ||
+        err.code === 112 ||
+        (err.message && err.message.includes("WriteConflict"));
+
+      if (isTransient && attempt < maxAttempts) {
+        // Exponential backoff with small random jitter (20-60ms)
+        const backoffMs = attempt * 25 + Math.floor(Math.random() * 35);
+        await new Promise((resolve) => setTimeout(resolve, backoffMs));
+        continue;
+      }
+
+      // Unsafe standalone fallback is strictly removed.
+      // If transactions are unsupported by the MongoDB deployment (e.g. standalone instance),
+      // fail safely with a descriptive diagnostic and user-friendly error instead of allowing phantom writes.
+      const isUnsupported =
+        (err.message &&
+          (err.message.includes("Transaction numbers are only allowed") ||
+            err.message.includes("standalone") ||
+            err.message.includes("Transactions are not supported"))) ||
+        err.code === 20;
+
+      if (isUnsupported) {
+        console.error(
+          "StayNest Concurrency Error: MongoDB deployment does not support replica set transactions. Reservation was safely rejected to prevent uncoordinated race conditions.",
+          err
+        );
+        return { success: false, reason: "TRANSACTIONS_UNSUPPORTED", error: err };
+      }
+
+      // Re-throw any other fatal or unexpected errors
+      throw err;
+    }
+  }
+
+  // If retries exhausted due to persistent transient write conflicts
+  return { success: false, reason: "UNAVAILABLE" };
+}
+
 // ==========================================
 // 1. Dedicated Reservation Form View
 // ==========================================
@@ -158,27 +291,18 @@ router.post("/listings/:id/reservations", isLoggedIn, async (req, res, next) => 
     // 5. Server-derived total price: strictly calculate on server
     const totalPrice = nightlyPrice * nights;
 
-    // 6. Overlap prevention with Concurrency Safety (MongoDB Transactions)
-    // Overlap condition: existing.checkIn < requested.checkOut AND existing.checkOut > requested.checkIn
-    let session = null;
-    let conflict = null;
-    let savedReservation = null;
+    // 6. Overlap prevention with Concurrency Safety (MongoDB Transactions + Listing Version Lock + Bounded Retry)
+    const bookingResult = await createReservationWithRetry({
+      listingId: listing._id,
+      userId: req.session.userId,
+      checkInDate,
+      checkOutDate,
+      guestsNum,
+      totalPrice,
+    });
 
-    try {
-      session = await mongoose.startSession();
-      session.startTransaction();
-
-      // Look for overlapping active reservations within transaction
-      conflict = await Reservation.findOne({
-        listing: listing._id,
-        status: "CONFIRMED",
-        checkIn: { $lt: checkOutDate },
-        checkOut: { $gt: checkInDate },
-      }).session(session);
-
-      if (conflict) {
-        await session.abortTransaction();
-        session.endSession();
+    if (!bookingResult.success) {
+      if (bookingResult.reason === "UNAVAILABLE") {
         req.flash(
           "error",
           "The selected dates are no longer available for this property. Please choose different dates."
@@ -186,64 +310,21 @@ router.post("/listings/:id/reservations", isLoggedIn, async (req, res, next) => 
         return res.redirect(`/listings/${id}`);
       }
 
-      // Create reservation strictly associating authenticated user ID
-      const newReservation = new Reservation({
-        listing: listing._id,
-        user: req.session.userId,
-        checkIn: checkInDate,
-        checkOut: checkOutDate,
-        guests: guestsNum,
-        totalPrice,
-        status: "CONFIRMED",
-      });
-
-      savedReservation = await newReservation.save({ session });
-      await session.commitTransaction();
-      session.endSession();
-    } catch (txErr) {
-      if (session) {
-        try {
-          await session.abortTransaction();
-        } catch (_) {}
-        session.endSession();
+      if (bookingResult.reason === "NOT_FOUND") {
+        req.flash("error", "The listing you requested does not exist.");
+        return res.redirect("/listings");
       }
 
-      // Graceful fallback for standalone MongoDB instances that do not support replica transactions
-      if (
-        txErr.message &&
-        (txErr.message.includes("Transaction numbers are only allowed") ||
-          txErr.message.includes("standalone") ||
-          txErr.message.includes("Transactions are not supported"))
-      ) {
-        conflict = await Reservation.findOne({
-          listing: listing._id,
-          status: "CONFIRMED",
-          checkIn: { $lt: checkOutDate },
-          checkOut: { $gt: checkInDate },
+      if (bookingResult.reason === "TRANSACTIONS_UNSUPPORTED") {
+        return res.status(503).render("errors/error.ejs", {
+          message:
+            "Reservation service is temporarily unavailable because the database environment does not support ACID transactions.",
+          status: 503,
         });
-
-        if (conflict) {
-          req.flash(
-            "error",
-            "The selected dates are no longer available for this property. Please choose different dates."
-          );
-          return res.redirect(`/listings/${id}`);
-        }
-
-        const newReservation = new Reservation({
-          listing: listing._id,
-          user: req.session.userId,
-          checkIn: checkInDate,
-          checkOut: checkOutDate,
-          guests: guestsNum,
-          totalPrice,
-          status: "CONFIRMED",
-        });
-
-        savedReservation = await newReservation.save();
-      } else {
-        throw txErr;
       }
+
+      req.flash("error", "An unexpected error occurred while processing your reservation. Please try again.");
+      return res.redirect(`/listings/${id}`);
     }
 
     req.flash("success", `Reservation confirmed! You have successfully booked ${nights} night(s).`);
@@ -333,4 +414,5 @@ module.exports = {
   calculateNights,
   formatDateForInput,
   formatDateDisplay,
+  createReservationWithRetry,
 };

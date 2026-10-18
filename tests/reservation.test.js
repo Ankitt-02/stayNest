@@ -73,7 +73,7 @@ function getFutureDates(offsetDays = 20, stayLength = 4) {
 }
 
 test.describe("StayNest Reservations & Availability System Test Suite", () => {
-  let userA, userB;
+  let userA, userB, userC, userD;
   let testListing1, testListing2;
 
   test.before(async () => {
@@ -88,6 +88,8 @@ test.describe("StayNest Reservations & Availability System Test Suite", () => {
     // Create test users
     userA = await createAuthenticatedUser("Alice Traveler", "alice.book@example.com", "SecurePassword123!");
     userB = await createAuthenticatedUser("Bob Explorer", "bob.book@example.com", "SecurePassword123!");
+    userC = await createAuthenticatedUser("Charlie Nomad", "charlie.book@example.com", "SecurePassword123!");
+    userD = await createAuthenticatedUser("Diana Voyager", "diana.book@example.com", "SecurePassword123!");
 
     // Create deterministic test listings (testListing1: 10000/night, testListing2: 5000/night)
     testListing1 = await Listing.create({
@@ -621,6 +623,24 @@ test.describe("StayNest Reservations & Availability System Test Suite", () => {
     assert.equal(res1.status, 302);
     assert.equal(res2.status, 302);
 
+    const locations = [res1.headers.location, res2.headers.location];
+    assert.ok(
+      locations.includes("/reservations"),
+      "Exactly one request must succeed and redirect to /reservations"
+    );
+    assert.ok(
+      locations.includes(`/listings/${testListing1._id}`),
+      "The conflicting request must be rejected and redirect to property page"
+    );
+
+    // The rejected user receives the unavailable flash message upon following redirect
+    const rejectedCookie =
+      res1.headers.location === "/reservations" ? userB.authCookie : userA.authCookie;
+    const followRes = await request(app)
+      .get(`/listings/${testListing1._id}`)
+      .set("Cookie", rejectedCookie);
+    assert.match(followRes.text, /no longer available for this property/i);
+
     // Exactly one reservation must be confirmed in the database for those dates
     const confirmedCount = await Reservation.countDocuments({
       listing: testListing1._id,
@@ -629,6 +649,222 @@ test.describe("StayNest Reservations & Availability System Test Suite", () => {
       checkOut: new Date(outStr + "T00:00:00.000Z"),
     });
 
-    assert.equal(confirmedCount, 1, "Only one concurrent reservation should be confirmed");
+    assert.equal(confirmedCount, 1, "Only one concurrent reservation should be confirmed in the database");
+  });
+
+  test("24. Four concurrent overlapping booking requests result in exactly one confirmed reservation", async () => {
+    const { inStr, outStr } = getFutureDates(130, 4);
+    const { inStr: inStrB, outStr: outStrB } = getFutureDates(129, 3);
+    const { inStr: inStrC, outStr: outStrC } = getFutureDates(132, 3);
+    const { inStr: inStrD, outStr: outStrD } = getFutureDates(131, 2);
+
+    const responses = await Promise.all([
+      request(app)
+        .post(`/listings/${testListing1._id}/reservations`)
+        .set("Cookie", userA.authCookie)
+        .send({ checkIn: inStr, checkOut: outStr, guests: 2, _csrf: userA.authCsrf }),
+      request(app)
+        .post(`/listings/${testListing1._id}/reservations`)
+        .set("Cookie", userB.authCookie)
+        .send({ checkIn: inStrB, checkOut: outStrB, guests: 2, _csrf: userB.authCsrf }),
+      request(app)
+        .post(`/listings/${testListing1._id}/reservations`)
+        .set("Cookie", userC.authCookie)
+        .send({ checkIn: inStrC, checkOut: outStrC, guests: 2, _csrf: userC.authCsrf }),
+      request(app)
+        .post(`/listings/${testListing1._id}/reservations`)
+        .set("Cookie", userD.authCookie)
+        .send({ checkIn: inStrD, checkOut: outStrD, guests: 2, _csrf: userD.authCsrf }),
+    ]);
+
+    for (const res of responses) {
+      assert.equal(res.status, 302);
+    }
+
+    const successResponses = responses.filter((r) => r.headers.location === "/reservations");
+    const rejectedResponses = responses.filter(
+      (r) => r.headers.location === `/listings/${testListing1._id}`
+    );
+
+    assert.equal(successResponses.length, 1, "Exactly one request out of four must succeed");
+    assert.equal(rejectedResponses.length, 3, "Exactly three requests out of four must be rejected");
+
+    const confirmedCount = await Reservation.countDocuments({
+      listing: testListing1._id,
+      status: "CONFIRMED",
+      checkIn: { $lt: new Date(outStrC + "T00:00:00.000Z") },
+      checkOut: { $gt: new Date(inStrB + "T00:00:00.000Z") },
+    });
+    assert.equal(
+      confirmedCount,
+      1,
+      "Only one confirmed reservation must exist across the overlapping range"
+    );
+  });
+
+  test("25. Back-to-back concurrent requests for the same listing both succeed", async () => {
+    // Stay 1: Day 150 to Day 154
+    // Stay 2: Day 154 to Day 158 (checkout matches checkin -> valid back-to-back)
+    const { inStr: inStr1, outStr: outStr1 } = getFutureDates(150, 4);
+    const inStr2 = outStr1;
+    const { outStr: outStr2 } = getFutureDates(154, 4);
+
+    const [res1, res2] = await Promise.all([
+      request(app)
+        .post(`/listings/${testListing2._id}/reservations`)
+        .set("Cookie", userA.authCookie)
+        .send({ checkIn: inStr1, checkOut: outStr1, guests: 1, _csrf: userA.authCsrf }),
+      request(app)
+        .post(`/listings/${testListing2._id}/reservations`)
+        .set("Cookie", userB.authCookie)
+        .send({ checkIn: inStr2, checkOut: outStr2, guests: 2, _csrf: userB.authCsrf }),
+    ]);
+
+    assert.equal(res1.status, 302);
+    assert.equal(res2.status, 302);
+    assert.equal(res1.headers.location, "/reservations");
+    assert.equal(res2.headers.location, "/reservations");
+
+    const stay1 = await Reservation.findOne({
+      listing: testListing2._id,
+      checkIn: new Date(inStr1 + "T00:00:00.000Z"),
+      checkOut: new Date(outStr1 + "T00:00:00.000Z"),
+      status: "CONFIRMED",
+    });
+    const stay2 = await Reservation.findOne({
+      listing: testListing2._id,
+      checkIn: new Date(inStr2 + "T00:00:00.000Z"),
+      checkOut: new Date(outStr2 + "T00:00:00.000Z"),
+      status: "CONFIRMED",
+    });
+
+    assert.ok(stay1, "Stay 1 must be confirmed in database");
+    assert.ok(stay2, "Stay 2 must be confirmed in database");
+  });
+
+  test("26. Concurrent requests for different listings do not conflict and both succeed", async () => {
+    const { inStr, outStr } = getFutureDates(170, 3);
+
+    const [resListing1, resListing2] = await Promise.all([
+      request(app)
+        .post(`/listings/${testListing1._id}/reservations`)
+        .set("Cookie", userC.authCookie)
+        .send({ checkIn: inStr, checkOut: outStr, guests: 2, _csrf: userC.authCsrf }),
+      request(app)
+        .post(`/listings/${testListing2._id}/reservations`)
+        .set("Cookie", userD.authCookie)
+        .send({ checkIn: inStr, checkOut: outStr, guests: 1, _csrf: userD.authCsrf }),
+    ]);
+
+    assert.equal(resListing1.status, 302);
+    assert.equal(resListing2.status, 302);
+    assert.equal(resListing1.headers.location, "/reservations");
+    assert.equal(resListing2.headers.location, "/reservations");
+
+    const booking1 = await Reservation.findOne({
+      listing: testListing1._id,
+      user: userC.user._id,
+      status: "CONFIRMED",
+      checkIn: new Date(inStr + "T00:00:00.000Z"),
+    });
+    const booking2 = await Reservation.findOne({
+      listing: testListing2._id,
+      user: userD.user._id,
+      status: "CONFIRMED",
+      checkIn: new Date(inStr + "T00:00:00.000Z"),
+    });
+
+    assert.ok(booking1, "Booking for Listing 1 must be confirmed");
+    assert.ok(booking2, "Booking for Listing 2 must be confirmed");
+  });
+
+  test("27. Concurrency failure never leaves orphaned or partial reservation records", async () => {
+    const allReservations = await Reservation.find({});
+    assert.ok(allReservations.length > 0);
+    for (const r of allReservations) {
+      assert.ok(r.listing, "Every reservation must reference a valid listing");
+      assert.ok(r.user, "Every reservation must reference a valid user");
+      assert.ok(r.checkIn instanceof Date, "Every reservation must have a valid checkIn Date");
+      assert.ok(r.checkOut instanceof Date, "Every reservation must have a valid checkOut Date");
+      assert.ok(typeof r.guests === "number" && r.guests >= 1, "guests must be positive number");
+      assert.ok(typeof r.totalPrice === "number" && r.totalPrice >= 0, "totalPrice must be non-negative");
+      assert.ok(["CONFIRMED", "CANCELLED"].includes(r.status), "status must be CONFIRMED or CANCELLED");
+    }
+  });
+
+  test("28. createReservationWithRetry respects maxAttempts and does not duplicate records", async () => {
+    const { createReservationWithRetry } = require("../routes/reservations.js");
+    const { inStr, outStr, d1, d2 } = getFutureDates(200, 3);
+
+    // 1. Initial booking succeeds
+    const result1 = await createReservationWithRetry({
+      listingId: testListing1._id,
+      userId: userA.user._id,
+      checkInDate: d1,
+      checkOutDate: d2,
+      guestsNum: 2,
+      totalPrice: 30000,
+      maxAttempts: 3,
+    });
+    assert.equal(result1.success, true);
+    assert.ok(result1.reservation);
+
+    // 2. Immediate second call for identical dates returns UNAVAILABLE cleanly
+    const result2 = await createReservationWithRetry({
+      listingId: testListing1._id,
+      userId: userB.user._id,
+      checkInDate: d1,
+      checkOutDate: d2,
+      guestsNum: 2,
+      totalPrice: 30000,
+      maxAttempts: 3,
+    });
+    assert.equal(result2.success, false);
+    assert.equal(result2.reason, "UNAVAILABLE");
+
+    // 3. Exactly 1 reservation document exists in DB for this date
+    const count = await Reservation.countDocuments({
+      listing: testListing1._id,
+      checkIn: d1,
+      checkOut: d2,
+      status: "CONFIRMED",
+    });
+    assert.equal(count, 1);
+  });
+
+  test("29. Unsupported transactions fail safely with diagnostic instead of unsafe non-transactional inserts", async () => {
+    const { createReservationWithRetry } = require("../routes/reservations.js");
+    const { inStr, outStr, d1, d2 } = getFutureDates(220, 2);
+
+    // Simulate an environment where mongoose.startSession throws TransactionNotSupported
+    const originalStartSession = mongoose.startSession;
+    mongoose.startSession = async () => {
+      const err = new Error("Transaction numbers are only allowed on a replica set member or mongos");
+      throw err;
+    };
+
+    try {
+      const result = await createReservationWithRetry({
+        listingId: testListing1._id,
+        userId: userA.user._id,
+        checkInDate: d1,
+        checkOutDate: d2,
+        guestsNum: 1,
+        totalPrice: 20000,
+      });
+
+      assert.equal(result.success, false);
+      assert.equal(result.reason, "TRANSACTIONS_UNSUPPORTED");
+
+      // Verify NO reservation was inserted into the database
+      const count = await Reservation.countDocuments({
+        listing: testListing1._id,
+        checkIn: d1,
+        checkOut: d2,
+      });
+      assert.equal(count, 0, "No reservation should be inserted when transactions are unsupported");
+    } finally {
+      mongoose.startSession = originalStartSession;
+    }
   });
 });

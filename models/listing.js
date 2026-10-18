@@ -21,6 +21,10 @@ const listingSchema = new Schema({
     type: Schema.Types.ObjectId,
     ref: "User",
   },
+  reservationVersion: {
+    type: Number,
+    default: 0,
+  },
 });
 
 const Listing = mongoose.model("Listing", listingSchema);
