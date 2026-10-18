@@ -1,89 +1,119 @@
 <% layout("/layouts/boilerplate") %>
 
-<div class="row mt-3">
-  <div class="col-8 offset-2">
-    <br /><br />
-    <h3>Create a new listing</h3>
-    <form method="post" action="/listings" novalidate class="needs-validation">
-      <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-      <div class="mb-3">
-        <label for="title" class="form-label">Title</label>
-        <input
-          type="text"
-          name="listing[title]"
-          placeholder="Title"
-          id="title"
-          class="form-control"
-          required
-        />
-        <div class="invalid-class">Enter a suitable Title*</div>
+<div class="row justify-content-center my-4">
+  <div class="col-12 col-md-10 col-lg-8">
+    <div class="card auth-card">
+      <div class="mb-4 pb-3 border-bottom">
+        <h1 class="h3 fw-bold text-dark mb-1">
+          <i class="fa-solid fa-circle-plus text-danger me-2"></i> Add a New Stay
+        </h1>
+        <p class="text-muted small mb-0">Share your property with travelers across StayNest.</p>
       </div>
 
-      <div class="mb-3">
-        <label for="description" class="form-label">Description</label>
-        <textarea
-          type="text"
-          name="listing[description]"
-          id="description"
-          class="form-control"
-          required
-        ></textarea>
-        <div class="invalid-class">Enter a suitable Description*</div>
-      </div>
+      <form method="POST" action="/listings" novalidate class="needs-validation">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
 
-      <div class="mb-3">
-        <label for="image" class="form-label">Image Link</label>
-        <input
-          type="text"
-          name="listing[image][url]"
-          placeholder="enter image URL/Link"
-          id="image"
-          class="form-control"
-        />
-        
-      </div>
-
-      <div class="row">
-        <div class="mb-3 col-md-4">
-          <label for="price" class="form-label">Price</label>
-          <input
-            name="listing[price]"
-            placeholder="1200"
-            type="number"
-            id="price"
-            class="form-control"
-            required
-          />
-          <div class="invalid-class">price*</div>
-        </div>
-
-        <div class="mb-3 col-md-8">
-          <label for="country" class="form-label">Country</label>
+        <!-- Property Title -->
+        <div class="mb-3">
+          <label for="title" class="form-label">Property Title</label>
           <input
             type="text"
-            name="listing[country]"
-            placeholder="India"
-            id="country"
+            name="listing[title]"
+            placeholder="e.g. Peaceful Lakeside Chalet"
+            id="title"
             class="form-control"
             required
           />
+          <div class="invalid-feedback">Please enter an engaging property title.</div>
         </div>
-      </div>
 
-      <div class="mb-3">
-        <label for="location" class="form-label">Location</label>
-        <input
-          type="text"
-          name="listing[location]"
-          placeholder="Jaipur, Rajasthan"
-          id="location"
-          class="form-control"
-          required
-        />
-        <div class="invalid-class">Please enter the Location*</div>
-      </div>
+        <!-- Property Description -->
+        <div class="mb-3">
+          <label for="description" class="form-label">Description</label>
+          <textarea
+            name="listing[description]"
+            id="description"
+            rows="4"
+            class="form-control"
+            placeholder="Describe what makes your space special, amenities, surroundings, etc."
+            required
+          ></textarea>
+          <div class="invalid-feedback">Please enter a detailed property description.</div>
+        </div>
 
-      <button class="btn btn-dark mt-3">Add</button>
-    </form>
+        <!-- Image URL -->
+        <div class="mb-3">
+          <label for="image" class="form-label">Property Image URL</label>
+          <div class="input-group">
+            <span class="input-group-text bg-white border-end-0">
+              <i class="fa-regular fa-image text-muted"></i>
+            </span>
+            <input
+              type="text"
+              name="listing[image][url]"
+              placeholder="https://images.unsplash.com/photo-..."
+              id="image"
+              class="form-control border-start-0"
+            />
+          </div>
+          <div class="form-text small text-muted">Provide a high-quality photo URL (Unsplash, Cloudinary, etc.).</div>
+        </div>
+
+        <!-- Price, Country, Location Grid -->
+        <div class="row g-3 mb-4">
+          <div class="col-12 col-md-4">
+            <label for="price" class="form-label">Nightly Rate (&#8377;)</label>
+            <div class="input-group">
+              <span class="input-group-text bg-white border-end-0">&#8377;</span>
+              <input
+                name="listing[price]"
+                placeholder="10000"
+                type="number"
+                id="price"
+                min="0"
+                step="100"
+                class="form-control border-start-0"
+                required
+              />
+              <div class="invalid-feedback">Enter a valid nightly rate.</div>
+            </div>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <label for="country" class="form-label">Country</label>
+            <input
+              type="text"
+              name="listing[country]"
+              placeholder="India"
+              id="country"
+              class="form-control"
+              required
+            />
+            <div class="invalid-feedback">Enter the property country.</div>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <label for="location" class="form-label">Location / City</label>
+            <input
+              type="text"
+              name="listing[location]"
+              placeholder="e.g. Manali, Himachal Pradesh"
+              id="location"
+              class="form-control"
+              required
+            />
+            <div class="invalid-feedback">Please enter the city or region.</div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+          <a href="/listings" class="btn btn-outline-dark">Cancel</a>
+          <button type="submit" class="btn btn-brand px-4 py-2">
+            <i class="fa-solid fa-cloud-arrow-up me-1"></i> Publish Stay
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 </div>

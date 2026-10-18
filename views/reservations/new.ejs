@@ -1,111 +1,122 @@
 <% layout("/layouts/boilerplate") %>
 
-<div class="container my-4">
-  <div class="row justify-content-center">
-    <div class="col-12 col-md-8 col-lg-6">
-      <div class="card shadow-sm border rounded-4 overflow-hidden">
-        <!-- Stay Header Image -->
-        <div class="position-relative">
-          <img
-            src="<%= listing.image.url %>"
-            alt="<%= listing.title %>"
-            class="card-img-top object-fit-cover"
-            style="height: 220px;"
-          />
-          <div class="position-absolute bottom-0 start-0 w-100 p-3 bg-dark bg-opacity-50 text-white">
-            <h4 class="fw-bold mb-0"><%= listing.title %></h4>
-            <small><i class="fa-solid fa-location-dot me-1"></i><%= listing.location %>, <%= listing.country %></small>
+<div class="row justify-content-center my-4">
+  <div class="col-12 col-md-8 col-lg-6 col-xl-5">
+    <!-- Back to Stay Link -->
+    <div class="mb-3">
+      <a href="/listings/<%= listing._id %>" class="btn btn-outline-dark btn-sm">
+        <i class="fa-solid fa-arrow-left me-1"></i> Back to <%= listing.title %>
+      </a>
+    </div>
+
+    <div class="card auth-card p-0 overflow-hidden">
+      <!-- Stay Header Image & Info -->
+      <div class="position-relative">
+        <img
+          src="<%= listing.image.url %>"
+          alt="<%= listing.title %>"
+          class="w-100 object-fit-cover"
+          style="height: 220px;"
+        />
+        <div class="position-absolute bottom-0 start-0 w-100 p-3 bg-dark bg-opacity-75 text-white">
+          <h1 class="h4 fw-bold mb-1 text-white"><%= listing.title %></h1>
+          <div class="small text-white-50">
+            <i class="fa-solid fa-location-dot me-1 text-danger"></i><%= listing.location %>, <%= listing.country %>
           </div>
         </div>
+      </div>
 
-        <div class="card-body p-4">
-          <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
-            <div>
-              <span class="fs-4 fw-bold text-dark">
-                &#8377;<%= (listing.price !== undefined && listing.price !== null) ? listing.price.toLocaleString("en-IN") : "0" %>
-              </span>
-              <span class="text-muted">/ night</span>
-            </div>
-            <span class="badge bg-light text-secondary border px-3 py-2">
-              <i class="fa-solid fa-shield-halved me-1 text-success"></i> Instant Confirmation
+      <div class="p-4">
+        <!-- Rate & Badge Header -->
+        <div class="d-flex justify-content-between align-items-baseline mb-3 pb-3 border-bottom">
+          <div>
+            <span class="fs-4 fw-bold text-dark">
+              &#8377;<%= (listing.price !== undefined && listing.price !== null) ? listing.price.toLocaleString("en-IN") : "0" %>
             </span>
+            <span class="text-muted fw-normal">/ night</span>
           </div>
+          <span class="badge bg-light text-secondary border px-3 py-2 fw-semibold">
+            <i class="fa-solid fa-shield-halved me-1 text-success"></i> Instant Confirmation
+          </span>
+        </div>
 
-          <form method="POST" action="/listings/<%= listing._id %>/reservations" id="reservationForm">
-            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+        <!-- Reservation Form -->
+        <form method="POST" action="/listings/<%= listing._id %>/reservations" id="reservationForm">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
 
-            <!-- Dates Row -->
-            <div class="row g-2 mb-3">
-              <div class="col-6">
-                <label for="checkInInput" class="form-label small fw-semibold text-secondary mb-1">
-                  <i class="fa-regular fa-calendar-check me-1 text-danger"></i> Check-in
-                </label>
-                <input
-                  type="date"
-                  class="form-control"
-                  id="checkInInput"
-                  name="checkIn"
-                  min="<%= todayStr %>"
-                  value="<%= todayStr %>"
-                  required
-                />
-              </div>
-              <div class="col-6">
-                <label for="checkOutInput" class="form-label small fw-semibold text-secondary mb-1">
-                  <i class="fa-regular fa-calendar-xmark me-1 text-danger"></i> Check-out
-                </label>
-                <input
-                  type="date"
-                  class="form-control"
-                  id="checkOutInput"
-                  name="checkOut"
-                  min="<%= tomorrowStr %>"
-                  value="<%= tomorrowStr %>"
-                  required
-                />
-              </div>
-            </div>
-
-            <!-- Guests -->
-            <div class="mb-3">
-              <label for="guestsInput" class="form-label small fw-semibold text-secondary mb-1">
-                <i class="fa-solid fa-user-group me-1 text-danger"></i> Number of Guests
+          <!-- Dates Row -->
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label for="checkInInput" class="form-label small">
+                <i class="fa-regular fa-calendar-check me-1 text-danger"></i> Check-in
               </label>
               <input
-                type="number"
+                type="date"
                 class="form-control"
-                id="guestsInput"
-                name="guests"
-                min="1"
-                max="50"
-                value="1"
+                id="checkInInput"
+                name="checkIn"
+                min="<%= todayStr %>"
+                value="<%= todayStr %>"
                 required
               />
-              <div class="form-text small">Enter total number of traveling guests.</div>
             </div>
-
-            <!-- Live Price Summary -->
-            <div class="bg-light p-3 rounded-3 mb-4 border" id="priceSummaryBox">
-              <div class="d-flex justify-content-between mb-2 small text-muted">
-                <span>&#8377;<%= (listing.price !== undefined && listing.price !== null) ? listing.price.toLocaleString("en-IN") : "0" %> &times; <span id="numNightsSpan">1</span> night(s)</span>
-                <span id="subtotalSpan">&#8377;<%= (listing.price !== undefined && listing.price !== null) ? listing.price.toLocaleString("en-IN") : "0" %></span>
-              </div>
-              <hr class="my-2" />
-              <div class="d-flex justify-content-between fw-bold text-dark fs-5">
-                <span>Total Estimated</span>
-                <span id="totalPriceSpan">&#8377;<%= (listing.price !== undefined && listing.price !== null) ? listing.price.toLocaleString("en-IN") : "0" %></span>
-              </div>
+            <div class="col-6">
+              <label for="checkOutInput" class="form-label small">
+                <i class="fa-regular fa-calendar-xmark me-1 text-danger"></i> Check-out
+              </label>
+              <input
+                type="date"
+                class="form-control"
+                id="checkOutInput"
+                name="checkOut"
+                min="<%= tomorrowStr %>"
+                value="<%= tomorrowStr %>"
+                required
+              />
             </div>
+          </div>
 
-            <button
-              type="submit"
-              class="btn btn-danger w-100 py-2 fs-5 fw-semibold"
-              style="background-color: #fe424d; border-color: #fe424d;"
-            >
-              <i class="fa-solid fa-calendar-check me-2"></i> Confirm Reservation
-            </button>
-          </form>
-        </div>
+          <!-- Guests -->
+          <div class="mb-3">
+            <label for="guestsInput" class="form-label small">
+              <i class="fa-solid fa-user-group me-1 text-danger"></i> Number of Guests
+            </label>
+            <input
+              type="number"
+              class="form-control"
+              id="guestsInput"
+              name="guests"
+              min="1"
+              max="50"
+              value="1"
+              required
+            />
+            <div class="form-text small text-muted">Include all adults and children.</div>
+          </div>
+
+          <!-- Live Price Summary Box -->
+          <div class="booking-receipt-box mb-4" id="priceSummaryBox">
+            <div class="d-flex justify-content-between mb-2 small text-secondary">
+              <span>&#8377;<%= (listing.price !== undefined && listing.price !== null) ? listing.price.toLocaleString("en-IN") : "0" %> &times; <span id="numNightsSpan">1</span> night(s)</span>
+              <span id="subtotalSpan" class="fw-semibold">&#8377;<%= (listing.price !== undefined && listing.price !== null) ? listing.price.toLocaleString("en-IN") : "0" %></span>
+            </div>
+            <hr class="my-2 border-secondary-subtle" />
+            <div class="d-flex justify-content-between fw-bold text-dark fs-5">
+              <span>Total Estimated</span>
+              <span id="totalPriceSpan">&#8377;<%= (listing.price !== undefined && listing.price !== null) ? listing.price.toLocaleString("en-IN") : "0" %></span>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            class="btn btn-brand w-100 py-3 fs-6 fw-semibold"
+          >
+            <i class="fa-solid fa-calendar-check me-2"></i> Confirm Reservation
+          </button>
+          <div class="text-center mt-2">
+            <small class="text-muted"><i class="fa-solid fa-lock me-1"></i> Safe &amp; secure booking verification</small>
+          </div>
+        </form>
       </div>
     </div>
   </div>

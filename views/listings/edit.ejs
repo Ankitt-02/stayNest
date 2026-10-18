@@ -1,77 +1,118 @@
 <% layout("/layouts/boilerplate") %>
-<div class="row mt-3">
-  <div class="col-8 offset-2">
-    <h3>Edit your listing</h3>
-    <form method="post" action="/listings/<%= listing._id %>?_method=PUT">
-      <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-      <div class="mb-3">
-        <label for="title" class="form-label">Title</label>
-        <input
-          type="text"
-          name="listing[title]"
-          value="<%= listing.title %>"
-          class="form-control"
-          required
-        />
-      </div>
-      <div class="mb-3">
-        <label for="description" class="form-label">Description</label>
-        <textarea
-          type="text"
-          name="listing[description]"
-          class="form-control"
-          required
-        >
-<%= listing.description %></textarea
-        >
+
+<div class="row justify-content-center my-4">
+  <div class="col-12 col-md-10 col-lg-8">
+    <div class="card auth-card">
+      <div class="mb-4 pb-3 border-bottom">
+        <h1 class="h3 fw-bold text-dark mb-1">
+          <i class="fa-solid fa-pen-to-square text-danger me-2"></i> Edit your listing
+        </h1>
+        <p class="text-muted small mb-0">Update listing description, nightly pricing, and location details.</p>
       </div>
 
-      <div class="mb-3">
-        <label for="image" class="form-label">Image</label>
-        <input
-          type="text"
-          name="listing[image][url]"
-          value="<%= listing.image.url %>"
-          class="form-control"
-          required
-        />
-      </div>
-      <div class="row">
-        <div class="mb-3 col-md-4">
-          <label for="price" class="form-label">Price</label>
-          <input
-            name="listing[price]"
-            value="<%= listing.price %>"
-            type="number"
-            class="form-control"
-            required
-          />
-        </div>
+      <form method="POST" action="/listings/<%= listing._id %>?_method=PUT" novalidate class="needs-validation">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
 
-        <div class="mb-3 col-md-8">
-          <label for="country" class="form-label">Country</label>
+        <!-- Property Title -->
+        <div class="mb-3">
+          <label for="title" class="form-label">Property Title</label>
           <input
             type="text"
-            name="listing[country]"
-            value="<%= listing.country %>"
+            name="listing[title]"
+            value="<%= listing.title %>"
+            id="title"
             class="form-control"
             required
           />
+          <div class="invalid-feedback">Please enter a property title.</div>
         </div>
-      </div>
 
-      <div class="mb-3">
-        <label for="location" class="form-label">Location</label>
-        <input
-          type="text"
-          name="listing[location]"
-          value="<%= listing.location %>"
-          class="form-control"
-          required
-        />
-      </div>
+        <!-- Property Description -->
+        <div class="mb-3">
+          <label for="description" class="form-label">Description</label>
+          <textarea
+            name="listing[description]"
+            id="description"
+            rows="4"
+            class="form-control"
+            required
+          ><%= listing.description %></textarea>
+          <div class="invalid-feedback">Please enter a property description.</div>
+        </div>
 
-      <button class="btn btn-dark mt-3">Edit</button>
-    </form>
+        <!-- Image URL -->
+        <div class="mb-3">
+          <label for="image" class="form-label">Property Image URL</label>
+          <div class="input-group">
+            <span class="input-group-text bg-white border-end-0">
+              <i class="fa-regular fa-image text-muted"></i>
+            </span>
+            <input
+              type="text"
+              name="listing[image][url]"
+              value="<%= listing.image ? listing.image.url : '' %>"
+              id="image"
+              class="form-control border-start-0"
+              required
+            />
+          </div>
+        </div>
+
+        <!-- Price, Country, Location Grid -->
+        <div class="row g-3 mb-4">
+          <div class="col-12 col-md-4">
+            <label for="price" class="form-label">Nightly Rate (&#8377;)</label>
+            <div class="input-group">
+              <span class="input-group-text bg-white border-end-0">&#8377;</span>
+              <input
+                name="listing[price]"
+                value="<%= listing.price %>"
+                type="number"
+                id="price"
+                min="0"
+                step="100"
+                class="form-control border-start-0"
+                required
+              />
+              <div class="invalid-feedback">Enter a valid nightly rate.</div>
+            </div>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <label for="country" class="form-label">Country</label>
+            <input
+              type="text"
+              name="listing[country]"
+              value="<%= listing.country %>"
+              id="country"
+              class="form-control"
+              required
+            />
+            <div class="invalid-feedback">Enter the property country.</div>
+          </div>
+
+          <div class="col-12 col-md-4">
+            <label for="location" class="form-label">Location / City</label>
+            <input
+              type="text"
+              name="listing[location]"
+              value="<%= listing.location %>"
+              id="location"
+              class="form-control"
+              required
+            />
+            <div class="invalid-feedback">Please enter the location.</div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+          <a href="/listings/<%= listing._id %>" class="btn btn-outline-dark">Cancel</a>
+          <button type="submit" class="btn btn-brand px-4 py-2">
+            <i class="fa-solid fa-floppy-disk me-1"></i> Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 </div>

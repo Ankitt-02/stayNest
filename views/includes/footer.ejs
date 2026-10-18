@@ -1,15 +1,25 @@
 <footer>
-    <div class="f-info">
-        <div class="f-info-socials">
-
-            <i class="fa-brands fa-linkedin"></i>
-            <i class="fa-brands fa-instagram"></i>
-            <i class="fa-brands fa-x-twitter"></i>
-        </div>
-        <div class="f-info-brand"> &copy; StayNest private Limited</div>
-        <div class="f-info-links">
-            <a href="/privacy">Privacy</a>
-            <a href="/terms">Terms</a>
-        </div>
+  <div class="container text-center">
+    <div class="mb-3">
+      <a href="https://twitter.com" class="footer-social-link" aria-label="StayNest on X / Twitter" target="_blank" rel="noopener noreferrer">
+        <i class="fa-brands fa-x-twitter"></i>
+      </a>
+      <a href="https://instagram.com" class="footer-social-link" aria-label="StayNest on Instagram" target="_blank" rel="noopener noreferrer">
+        <i class="fa-brands fa-instagram"></i>
+      </a>
+      <a href="https://linkedin.com" class="footer-social-link" aria-label="StayNest on LinkedIn" target="_blank" rel="noopener noreferrer">
+        <i class="fa-brands fa-linkedin-in"></i>
+      </a>
     </div>
+    <div class="mb-2 text-secondary fw-semibold">
+      &copy; <%= new Date().getFullYear() %> StayNest, Inc. All rights reserved.
+    </div>
+    <div class="small">
+      <a href="/listings" class="footer-link">Browse Stays</a>
+      <span class="text-muted">&middot;</span>
+      <a href="/listings/new" class="footer-link">Host a Property</a>
+      <span class="text-muted">&middot;</span>
+      <span class="text-muted">India</span>
+    </div>
+  </div>
 </footer>

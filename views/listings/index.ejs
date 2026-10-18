@@ -7,93 +7,96 @@
   const currentMaxPrice = (safeFilters.maxPrice !== null && safeFilters.maxPrice !== undefined) ? safeFilters.maxPrice : '';
 %>
 
-<!-- Search & Filter Section -->
-<div class="card shadow-sm border mb-4 mt-2" style="border-radius: 1rem;">
-  <div class="card-body p-3">
-    <form method="GET" action="/listings" class="row g-3 align-items-end">
-      <!-- Destination or Property Search -->
-      <div class="col-12 col-lg-5">
-        <label for="searchInput" class="form-label small fw-semibold text-secondary mb-1">
-          <i class="fa-solid fa-magnifying-glass me-1 text-danger"></i> Destination or Property
-        </label>
-        <div class="input-group">
-          <span class="input-group-text bg-light border-end-0">
-            <i class="fa-solid fa-location-dot text-muted"></i>
-          </span>
-          <input
-            type="text"
-            id="searchInput"
-            name="search"
-            class="form-control border-start-0"
-            placeholder="e.g. Goa, Manali, Villa, Chalet, India..."
-            value="<%= currentSearch %>"
-          />
-        </div>
-      </div>
+<!-- Page Heading & Subtitle -->
+<div class="mb-4">
+  <h1 class="h2 fw-bold text-dark mb-1">Explore Stays in India</h1>
+  <p class="text-muted mb-0">Discover exceptional homes, scenic chalets, and beachfront villas.</p>
+</div>
 
-      <!-- Minimum Price -->
-      <div class="col-6 col-sm-6 col-lg-2">
-        <label for="minPriceInput" class="form-label small fw-semibold text-secondary mb-1">
-          <i class="fa-solid fa-indian-rupee-sign me-1 text-danger"></i> Min Price
-        </label>
+<!-- Search & Filter Card -->
+<div class="sn-search-card">
+  <form method="GET" action="/listings" class="row g-3 align-items-end">
+    <!-- Destination or Property Search -->
+    <div class="col-12 col-md-5 col-lg-5">
+      <label for="searchInput" class="form-label">
+        <i class="fa-solid fa-magnifying-glass me-1 text-danger"></i> Destination or Property
+      </label>
+      <div class="input-group">
+        <span class="input-group-text bg-white border-end-0">
+          <i class="fa-solid fa-location-dot text-muted"></i>
+        </span>
         <input
-          type="number"
-          id="minPriceInput"
-          name="minPrice"
-          min="0"
-          step="500"
-          class="form-control"
-          placeholder="Min &#8377;"
-          value="<%= currentMinPrice %>"
+          type="text"
+          id="searchInput"
+          name="search"
+          class="form-control border-start-0"
+          placeholder="e.g. Goa, Manali, Villa, Chalet..."
+          value="<%= currentSearch %>"
         />
       </div>
+    </div>
 
-      <!-- Maximum Price -->
-      <div class="col-6 col-sm-6 col-lg-2">
-        <label for="maxPriceInput" class="form-label small fw-semibold text-secondary mb-1">
-          <i class="fa-solid fa-indian-rupee-sign me-1 text-danger"></i> Max Price
-        </label>
-        <input
-          type="number"
-          id="maxPriceInput"
-          name="maxPrice"
-          min="0"
-          step="500"
-          class="form-control"
-          placeholder="Max &#8377;"
-          value="<%= currentMaxPrice %>"
-        />
-      </div>
+    <!-- Minimum Price -->
+    <div class="col-6 col-md-3 col-lg-2">
+      <label for="minPriceInput" class="form-label">
+        <i class="fa-solid fa-indian-rupee-sign me-1 text-muted"></i> Min Price
+      </label>
+      <input
+        type="number"
+        id="minPriceInput"
+        name="minPrice"
+        min="0"
+        step="500"
+        class="form-control"
+        placeholder="Min &#8377;"
+        value="<%= currentMinPrice %>"
+      />
+    </div>
 
-      <!-- Action Buttons -->
-      <div class="col-12 col-lg-3 d-flex gap-2">
-        <button
-          type="submit"
-          class="btn btn-danger flex-grow-1"
-          style="background-color: #fe424d; border-color: #fe424d;"
-        >
-          <i class="fa-solid fa-sliders me-1"></i> Apply Filters
-        </button>
-        <% if (activeFilters) { %>
-          <a href="/listings" class="btn btn-outline-secondary" title="Clear all filters">
-            <i class="fa-solid fa-rotate-left me-1"></i> Clear
-          </a>
-        <% } %>
-      </div>
-    </form>
-  </div>
+    <!-- Maximum Price -->
+    <div class="col-6 col-md-3 col-lg-2">
+      <label for="maxPriceInput" class="form-label">
+        <i class="fa-solid fa-indian-rupee-sign me-1 text-muted"></i> Max Price
+      </label>
+      <input
+        type="number"
+        id="maxPriceInput"
+        name="maxPrice"
+        min="0"
+        step="500"
+        class="form-control"
+        placeholder="Max &#8377;"
+        value="<%= currentMaxPrice %>"
+      />
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="col-12 col-md-12 col-lg-3 d-flex gap-2">
+      <button
+        type="submit"
+        class="btn btn-brand flex-grow-1"
+      >
+        <i class="fa-solid fa-sliders me-1"></i> Apply Filters
+      </button>
+      <% if (activeFilters) { %>
+        <a href="/listings" class="btn btn-outline-dark" title="Clear all filters">
+          <i class="fa-solid fa-rotate-left me-1"></i> Clear
+        </a>
+      <% } %>
+    </div>
+  </form>
 </div>
 
 <!-- Results Header & Count -->
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h3 class="mb-0">
+<div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+  <h2 class="h5 fw-bold text-dark mb-0">
     <% if (activeFilters) { %>
       Search Results
     <% } else { %>
       All Stays
     <% } %>
-  </h3>
-  <span class="badge bg-light text-dark border fs-6 fw-normal px-3 py-2">
+  </h2>
+  <span class="badge bg-light text-secondary border px-3 py-2 fw-semibold">
     <i class="fa-solid fa-house-chimney me-1 text-muted"></i>
     <b><%= allListings.length %></b> <%= allListings.length === 1 ? 'stay' : 'stays' %><%= activeFilters ? ' found' : '' %>
   </span>
@@ -101,48 +104,55 @@
 
 <!-- Empty State or Listings Grid -->
 <% if (allListings.length === 0) { %>
-  <div class="text-center py-5 my-4 bg-light rounded border">
-    <div class="mb-3">
-      <i class="fa-solid fa-magnifying-glass-location text-muted" style="font-size: 3.5rem;"></i>
+  <div class="empty-state-card my-4">
+    <div class="empty-state-icon">
+      <i class="fa-solid fa-magnifying-glass-location"></i>
     </div>
-    <h4 class="fw-semibold text-secondary">No stays found</h4>
-    <p class="text-muted mb-4">
+    <h3 class="h4 fw-semibold text-dark mb-2">No stays found</h3>
+    <p class="text-muted mb-4 mx-auto" style="max-width: 480px;">
       <% if (activeFilters) { %>
         We couldn't find any properties matching your current search or price filters.
-        <br class="d-none d-md-block" />Try broadening your keywords, adjusting your price range, or clearing filters.
+        Try broadening your keywords, adjusting your price range, or clearing all filters.
       <% } else { %>
-        No properties are currently available in the catalog.
+        No properties are currently available in the catalog. Check back soon for newly listed stays!
       <% } %>
     </p>
     <% if (activeFilters) { %>
-      <a href="/listings" class="btn btn-danger" style="background-color: #fe424d; border-color: #fe424d;">
+      <a href="/listings" class="btn btn-brand">
         <i class="fa-solid fa-rotate-left me-1"></i> Clear All Filters
       </a>
     <% } %>
   </div>
 <% } else { %>
-  <div class="row row-cols-lg-3 row-cols-md-2 row-cols-sm-1">
+  <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
     <% for (let listing of allListings) { %>
-    <a href="/listings/<%= listing._id %>" class="listing-link">
-      <div class="card col">
-        <img
-          src="<%= listing.image.url %>"
-          class="card-img-top"
-          alt="listing_image"
-          style="height: 20rem"
-        />
-        <div class="card-img-overlay"></div>
-        <div class="card-body">
-          <p class="card-text">
-            <b><%= listing.title %></b><br />
-            <small class="text-muted">
-              <i class="fa-solid fa-location-dot me-1"></i><%= listing.location %>, <%= listing.country %>
-            </small><br />
-            &#8377;<%= (listing.price !== undefined && listing.price !== null) ? listing.price.toLocaleString("en-IN") : "0" %>/Night
-          </p>
-        </div>
+      <div class="col">
+        <a href="/listings/<%= listing._id %>" class="listing-link">
+          <div class="card listing-card h-100">
+            <div class="listing-img-wrapper">
+              <img
+                src="<%= listing.image.url %>"
+                class="listing-card-img"
+                alt="<%= listing.title %>"
+                loading="lazy"
+              />
+            </div>
+            <div class="card-body">
+              <div class="listing-title" title="<%= listing.title %>">
+                <%= listing.title %>
+              </div>
+              <div class="listing-location">
+                <i class="fa-solid fa-location-dot text-danger small"></i>
+                <span><%= listing.location %>, <%= listing.country %></span>
+              </div>
+              <div class="listing-price">
+                &#8377;<%= (listing.price !== undefined && listing.price !== null) ? listing.price.toLocaleString("en-IN") : "0" %>
+                <span class="listing-price-period">/ night</span>
+              </div>
+            </div>
+          </div>
+        </a>
       </div>
-    </a>
     <% } %>
   </div>
 <% } %>

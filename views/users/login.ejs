@@ -1,47 +1,68 @@
 <% layout("/layouts/boilerplate") %>
 
-<div class="row mt-4">
-  <div class="col-md-6 offset-md-3 col-10 offset-1">
-    <div class="card p-4 shadow-sm border rounded">
-      <h3 class="mb-3 text-center">Log in to StayNest</h3>
-      <p class="text-muted text-center mb-4">Welcome back! Please enter your details.</p>
+<div class="row justify-content-center my-4">
+  <div class="col-12 col-sm-10 col-md-8 col-lg-5 col-xl-4">
+    <div class="card auth-card">
+      <div class="text-center mb-3">
+        <div class="auth-header-icon">
+          <i class="fa-solid fa-mountain-city"></i>
+        </div>
+        <h1 class="h3 fw-bold text-dark mb-1">Welcome back</h1>
+        <p class="text-muted small mb-0">Log in to manage your stays and bookings.</p>
+      </div>
 
       <form method="POST" action="/login" class="needs-validation" novalidate>
         <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
 
         <div class="mb-3">
           <label for="email" class="form-label">Email Address</label>
-          <input
-            type="email"
-            id="email"
-            name="email"
-            class="form-control"
-            placeholder="name@example.com"
-            value="<%= (typeof formData !== 'undefined' && formData.email) ? formData.email : '' %>"
-            required
-          />
-          <div class="invalid-feedback">Please enter your email address.</div>
+          <div class="input-group">
+            <span class="input-group-text bg-white border-end-0">
+              <i class="fa-regular fa-envelope text-muted"></i>
+            </span>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              class="form-control border-start-0"
+              placeholder="name@example.com"
+              value="<%= (typeof formData !== 'undefined' && formData.email) ? formData.email : '' %>"
+              autocomplete="email"
+              required
+            />
+            <div class="invalid-feedback">Please enter a valid email address.</div>
+          </div>
         </div>
 
-        <div class="mb-3">
+        <div class="mb-4">
           <label for="password" class="form-label">Password</label>
-          <input
-            type="password"
-            id="password"
-            name="password"
-            class="form-control"
-            placeholder="Your password"
-            required
-          />
-          <div class="invalid-feedback">Please enter your password.</div>
+          <div class="input-group">
+            <span class="input-group-text bg-white border-end-0">
+              <i class="fa-solid fa-lock text-muted"></i>
+            </span>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              class="form-control border-start-0"
+              placeholder="Enter your password"
+              autocomplete="current-password"
+              required
+            />
+            <div class="invalid-feedback">Please enter your password.</div>
+          </div>
         </div>
 
-        <button type="submit" class="btn btn-dark w-100 mt-2 py-2">Log In</button>
+        <button type="submit" class="btn btn-brand w-100 py-2 fs-6 fw-semibold">
+          <i class="fa-solid fa-arrow-right-to-bracket me-1"></i> Log In
+        </button>
       </form>
 
-      <hr class="my-4" />
-      <p class="text-center mb-0">
-        Don't have an account? <a href="/signup" class="text-dark fw-bold">Sign up</a>
+      <hr class="my-4 border-secondary-subtle" />
+
+      <p class="text-center small text-muted mb-0">
+        Don't have a StayNest account?
+        <a href="/signup" class="text-brand fw-bold text-decoration-none">Sign up</a>
       </p>
     </div>
   </div>
