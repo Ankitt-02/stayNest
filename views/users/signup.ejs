@@ -1,0 +1,67 @@
+<% layout("/layouts/boilerplate") %>
+
+<div class="row mt-4">
+  <div class="col-md-6 offset-md-3 col-10 offset-1">
+    <div class="card p-4 shadow-sm border rounded">
+      <h3 class="mb-3 text-center">Sign up for StayNest</h3>
+      <p class="text-muted text-center mb-4">Create your account to start hosting or booking stays.</p>
+
+      <form method="POST" action="/signup" class="needs-validation" novalidate>
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+
+        <div class="mb-3">
+          <label for="name" class="form-label">Full Name</label>
+          <input
+            type="text"
+            id="name"
+            name="name"
+            class="form-control"
+            placeholder="John Doe"
+            value="<%= (typeof formData !== 'undefined' && formData.name) ? formData.name : '' %>"
+            required
+            minlength="2"
+            maxlength="50"
+          />
+          <div class="invalid-feedback">Please enter your full name (at least 2 characters).</div>
+        </div>
+
+        <div class="mb-3">
+          <label for="email" class="form-label">Email Address</label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            class="form-control"
+            placeholder="name@example.com"
+            value="<%= (typeof formData !== 'undefined' && formData.email) ? formData.email : '' %>"
+            required
+          />
+          <div class="invalid-feedback">Please provide a valid email address.</div>
+        </div>
+
+        <div class="mb-3">
+          <label for="password" class="form-label">Password</label>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            class="form-control"
+            placeholder="At least 8 characters"
+            required
+            minlength="8"
+            maxlength="128"
+          />
+          <div class="form-text">Must be 8 to 128 characters long.</div>
+          <div class="invalid-feedback">Password must be at least 8 characters long.</div>
+        </div>
+
+        <button type="submit" class="btn btn-dark w-100 mt-2 py-2">Create Account</button>
+      </form>
+
+      <hr class="my-4" />
+      <p class="text-center mb-0">
+        Already have an account? <a href="/login" class="text-dark fw-bold">Log in</a>
+      </p>
+    </div>
+  </div>
+</div>

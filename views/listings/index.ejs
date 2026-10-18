@@ -1,0 +1,148 @@
+<% layout("/layouts/boilerplate") %>
+<%
+  const safeFilters = (typeof filters !== "undefined" && filters) ? filters : {};
+  const activeFilters = (typeof hasActiveFilters !== "undefined") ? Boolean(hasActiveFilters) : false;
+  const currentSearch = (safeFilters.search || safeFilters.location || '');
+  const currentMinPrice = (safeFilters.minPrice !== null && safeFilters.minPrice !== undefined) ? safeFilters.minPrice : '';
+  const currentMaxPrice = (safeFilters.maxPrice !== null && safeFilters.maxPrice !== undefined) ? safeFilters.maxPrice : '';
+%>
+
+<!-- Search & Filter Section -->
+<div class="card shadow-sm border mb-4 mt-2" style="border-radius: 1rem;">
+  <div class="card-body p-3">
+    <form method="GET" action="/listings" class="row g-3 align-items-end">
+      <!-- Destination or Property Search -->
+      <div class="col-12 col-lg-5">
+        <label for="searchInput" class="form-label small fw-semibold text-secondary mb-1">
+          <i class="fa-solid fa-magnifying-glass me-1 text-danger"></i> Destination or Property
+        </label>
+        <div class="input-group">
+          <span class="input-group-text bg-light border-end-0">
+            <i class="fa-solid fa-location-dot text-muted"></i>
+          </span>
+          <input
+            type="text"
+            id="searchInput"
+            name="search"
+            class="form-control border-start-0"
+            placeholder="e.g. Goa, Manali, Villa, Chalet, India..."
+            value="<%= currentSearch %>"
+          />
+        </div>
+      </div>
+
+      <!-- Minimum Price -->
+      <div class="col-6 col-sm-6 col-lg-2">
+        <label for="minPriceInput" class="form-label small fw-semibold text-secondary mb-1">
+          <i class="fa-solid fa-indian-rupee-sign me-1 text-danger"></i> Min Price
+        </label>
+        <input
+          type="number"
+          id="minPriceInput"
+          name="minPrice"
+          min="0"
+          step="500"
+          class="form-control"
+          placeholder="Min &#8377;"
+          value="<%= currentMinPrice %>"
+        />
+      </div>
+
+      <!-- Maximum Price -->
+      <div class="col-6 col-sm-6 col-lg-2">
+        <label for="maxPriceInput" class="form-label small fw-semibold text-secondary mb-1">
+          <i class="fa-solid fa-indian-rupee-sign me-1 text-danger"></i> Max Price
+        </label>
+        <input
+          type="number"
+          id="maxPriceInput"
+          name="maxPrice"
+          min="0"
+          step="500"
+          class="form-control"
+          placeholder="Max &#8377;"
+          value="<%= currentMaxPrice %>"
+        />
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="col-12 col-lg-3 d-flex gap-2">
+        <button
+          type="submit"
+          class="btn btn-danger flex-grow-1"
+          style="background-color: #fe424d; border-color: #fe424d;"
+        >
+          <i class="fa-solid fa-sliders me-1"></i> Apply Filters
+        </button>
+        <% if (activeFilters) { %>
+          <a href="/listings" class="btn btn-outline-secondary" title="Clear all filters">
+            <i class="fa-solid fa-rotate-left me-1"></i> Clear
+          </a>
+        <% } %>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Results Header & Count -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h3 class="mb-0">
+    <% if (activeFilters) { %>
+      Search Results
+    <% } else { %>
+      All Stays
+    <% } %>
+  </h3>
+  <span class="badge bg-light text-dark border fs-6 fw-normal px-3 py-2">
+    <i class="fa-solid fa-house-chimney me-1 text-muted"></i>
+    <b><%= allListings.length %></b> <%= allListings.length === 1 ? 'stay' : 'stays' %><%= activeFilters ? ' found' : '' %>
+  </span>
+</div>
+
+<!-- Empty State or Listings Grid -->
+<% if (allListings.length === 0) { %>
+  <div class="text-center py-5 my-4 bg-light rounded border">
+    <div class="mb-3">
+      <i class="fa-solid fa-magnifying-glass-location text-muted" style="font-size: 3.5rem;"></i>
+    </div>
+    <h4 class="fw-semibold text-secondary">No stays found</h4>
+    <p class="text-muted mb-4">
+      <% if (activeFilters) { %>
+        We couldn't find any properties matching your current search or price filters.
+        <br class="d-none d-md-block" />Try broadening your keywords, adjusting your price range, or clearing filters.
+      <% } else { %>
+        No properties are currently available in the catalog.
+      <% } %>
+    </p>
+    <% if (activeFilters) { %>
+      <a href="/listings" class="btn btn-danger" style="background-color: #fe424d; border-color: #fe424d;">
+        <i class="fa-solid fa-rotate-left me-1"></i> Clear All Filters
+      </a>
+    <% } %>
+  </div>
+<% } else { %>
+  <div class="row row-cols-lg-3 row-cols-md-2 row-cols-sm-1">
+    <% for (let listing of allListings) { %>
+    <a href="/listings/<%= listing._id %>" class="listing-link">
+      <div class="card col">
+        <img
+          src="<%= listing.image.url %>"
+          class="card-img-top"
+          alt="listing_image"
+          style="height: 20rem"
+        />
+        <div class="card-img-overlay"></div>
+        <div class="card-body">
+          <p class="card-text">
+            <b><%= listing.title %></b><br />
+            <small class="text-muted">
+              <i class="fa-solid fa-location-dot me-1"></i><%= listing.location %>, <%= listing.country %>
+            </small><br />
+            &#8377;<%= (listing.price !== undefined && listing.price !== null) ? listing.price.toLocaleString("en-IN") : "0" %>/Night
+          </p>
+        </div>
+      </div>
+    </a>
+    <% } %>
+  </div>
+<% } %>

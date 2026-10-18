@@ -1,0 +1,29 @@
+{
+  "name": "staynest",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node app.js",
+    "test": "node --test tests/**/*.test.js",
+    "seed:listings": "node scripts/seed-listings.js"
+  },
+  "keywords": [],
+  "author": "Ankit swami",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "connect-flash": "^0.1.1",
+    "connect-mongo": "^6.0.0",
+    "ejs": "^3.1.10",
+    "ejs-mate": "^4.0.0",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.7.1",
+    "express-session": "^1.19.0",
+    "method-override": "^3.0.0",
+    "mongoose": "^8.16.0"
+  },
+  "devDependencies": {
+    "supertest": "^7.3.1"
+  }
+}

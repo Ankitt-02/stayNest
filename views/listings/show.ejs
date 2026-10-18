@@ -1,0 +1,215 @@
+<% layout("/layouts/boilerplate") %>
+<%
+  const now = new Date();
+  const todayUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const tomorrowUtc = new Date(todayUtc.getTime() + 24 * 60 * 60 * 1000);
+  const pad = (n) => String(n).padStart(2, '0');
+  const todayStr = `${todayUtc.getUTCFullYear()}-${pad(todayUtc.getUTCMonth() + 1)}-${pad(todayUtc.getUTCDate())}`;
+  const tomorrowStr = `${tomorrowUtc.getUTCFullYear()}-${pad(tomorrowUtc.getUTCMonth() + 1)}-${pad(tomorrowUtc.getUTCDate())}`;
+  const isOwnerUser = currentUser && listing.owner && (listing.owner._id ? listing.owner._id.equals(currentUser._id) : listing.owner.equals(currentUser._id));
+%>
+
+<div class="container my-4">
+  <div class="row g-4 justify-content-center">
+    <!-- Left Column: Listing Details -->
+    <div class="col-12 col-lg-7">
+      <div class="card show-card border-0">
+        <h3 class="fw-bold mb-3"><%= listing.title %></h3>
+        <img
+          src="<%= listing.image.url %>"
+          class="card-img-top show-img rounded-4 mb-3"
+          alt="listing-image"
+          style="max-height: 420px; object-fit: cover;"
+        />
+        <div class="card-body p-0">
+          <p class="card-text">
+            <b><%= listing.title %></b> <br />
+            <small class="text-muted">
+              Hosted by <%= (listing.owner && listing.owner.name) ? listing.owner.name : "StayNest Community Host" %>
+            </small> <br />
+            <span class="text-secondary"><%= listing.description %></span> <br />
+            <span class="fs-5 fw-bold text-dark mt-2 d-inline-block">
+              &#8377; <%= (listing.price !== undefined && listing.price !== null) ? listing.price.toLocaleString("en-IN") : "0" %>
+            </span> <span class="text-muted">/ night</span> <br />
+            <i class="fa-solid fa-location-dot text-danger me-1 mt-2"></i>
+            <%= listing.location %>, <%= listing.country %>
+          </p>
+        </div>
+
+        <% if (isOwnerUser) { %>
+        <div class="btns mt-3 pt-3 border-top">
+          <a
+            href="/listings/<%= listing._id %>/edit"
+            class="btn btn-dark edit-btn me-2"
+          >
+            <i class="fa-solid fa-pen-to-square me-1"></i> Edit Stay
+          </a>
+
+          <form method="post" action="/listings/<%= listing._id %>?_method=DELETE" class="d-inline">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+            <button class="btn btn-outline-danger" onclick="return confirm('Are you sure you want to delete this stay?');">
+              <i class="fa-solid fa-trash me-1"></i> Delete Stay
+            </button>
+          </form>
+        </div>
+        <% } %>
+      </div>
+    </div>
+
+    <!-- Right Column: Booking Card -->
+    <div class="col-12 col-lg-5">
+      <div class="card shadow-sm border rounded-4 sticky-top p-4" style="top: 2rem; z-index: 10;">
+        <div class="d-flex justify-content-between align-items-baseline mb-3 pb-3 border-bottom">
+          <div>
+            <span class="fs-3 fw-bold text-dark">
+              &#8377;<%= (listing.price !== undefined && listing.price !== null) ? listing.price.toLocaleString("en-IN") : "0" %>
+            </span>
+            <span class="text-muted">/ night</span>
+          </div>
+          <span class="badge bg-light text-secondary border px-3 py-2">
+            <i class="fa-solid fa-bolt me-1 text-warning"></i> Instant Booking
+          </span>
+        </div>
+
+        <form method="POST" action="/listings/<%= listing._id %>/reservations" id="bookingForm">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+
+          <!-- Date Selectors -->
+          <div class="row g-2 mb-3">
+            <div class="col-6">
+              <label for="showCheckIn" class="form-label small fw-semibold text-secondary mb-1">
+                <i class="fa-regular fa-calendar-check me-1 text-danger"></i> Check-in
+              </label>
+              <input
+                type="date"
+                class="form-control"
+                id="showCheckIn"
+                name="checkIn"
+                min="<%= todayStr %>"
+                value="<%= todayStr %>"
+                required
+              />
+            </div>
+            <div class="col-6">
+              <label for="showCheckOut" class="form-label small fw-semibold text-secondary mb-1">
+                <i class="fa-regular fa-calendar-xmark me-1 text-danger"></i> Check-out
+              </label>
+              <input
+                type="date"
+                class="form-control"
+                id="showCheckOut"
+                name="checkOut"
+                min="<%= tomorrowStr %>"
+                value="<%= tomorrowStr %>"
+                required
+              />
+            </div>
+          </div>
+
+          <!-- Guests -->
+          <div class="mb-3">
+            <label for="showGuests" class="form-label small fw-semibold text-secondary mb-1">
+              <i class="fa-solid fa-user-group me-1 text-danger"></i> Guests
+            </label>
+            <input
+              type="number"
+              class="form-control"
+              id="showGuests"
+              name="guests"
+              min="1"
+              max="50"
+              value="1"
+              required
+            />
+          </div>
+
+          <!-- Live Breakdown -->
+          <div class="bg-light p-3 rounded-3 mb-3 border">
+            <div class="d-flex justify-content-between mb-2 small text-muted">
+              <span>&#8377;<%= (listing.price !== undefined && listing.price !== null) ? listing.price.toLocaleString("en-IN") : "0" %> &times; <span id="showNightsSpan">1</span> night(s)</span>
+              <span id="showSubtotalSpan">&#8377;<%= (listing.price !== undefined && listing.price !== null) ? listing.price.toLocaleString("en-IN") : "0" %></span>
+            </div>
+            <hr class="my-2" />
+            <div class="d-flex justify-content-between fw-bold text-dark fs-5">
+              <span>Total Estimated</span>
+              <span id="showTotalSpan">&#8377;<%= (listing.price !== undefined && listing.price !== null) ? listing.price.toLocaleString("en-IN") : "0" %></span>
+            </div>
+          </div>
+
+          <% if (currentUser) { %>
+            <button
+              type="submit"
+              class="btn btn-danger w-100 py-2 fs-5 fw-semibold shadow-sm"
+              style="background-color: #fe424d; border-color: #fe424d;"
+            >
+              <i class="fa-solid fa-calendar-check me-2"></i> Reserve Stay
+            </button>
+            <div class="text-center mt-2">
+              <small class="text-muted"><i class="fa-solid fa-lock me-1"></i> You won't be charged yet</small>
+            </div>
+          <% } else { %>
+            <a
+              href="/login"
+              class="btn btn-danger w-100 py-2 fs-5 fw-semibold shadow-sm text-center"
+              style="background-color: #fe424d; border-color: #fe424d;"
+            >
+              <i class="fa-solid fa-arrow-right-to-bracket me-2"></i> Sign In to Reserve
+            </a>
+            <div class="text-center mt-2">
+              <small class="text-muted">Sign in or register an account to book this stay</small>
+            </div>
+          <% } %>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    const nightlyRate = <%= Number(listing.price) || 0 %>;
+    const inEl = document.getElementById("showCheckIn");
+    const outEl = document.getElementById("showCheckOut");
+    const nightsSpan = document.getElementById("showNightsSpan");
+    const subtotalSpan = document.getElementById("showSubtotalSpan");
+    const totalSpan = document.getElementById("showTotalSpan");
+
+    if (!inEl || !outEl) return;
+
+    function recalculate() {
+      if (!inEl.value || !outEl.value) return;
+      const d1 = new Date(inEl.value + "T00:00:00Z");
+      const d2 = new Date(outEl.value + "T00:00:00Z");
+      const diffMs = d2.getTime() - d1.getTime();
+      const nights = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+      if (nights >= 1) {
+        const total = nights * nightlyRate;
+        nightsSpan.textContent = nights;
+        subtotalSpan.textContent = "₹" + total.toLocaleString("en-IN");
+        totalSpan.textContent = "₹" + total.toLocaleString("en-IN");
+      } else {
+        nightsSpan.textContent = "0";
+        subtotalSpan.textContent = "Invalid dates";
+        totalSpan.textContent = "—";
+      }
+    }
+
+    inEl.addEventListener("change", function () {
+      if (inEl.value) {
+        const nextDay = new Date(new Date(inEl.value + "T00:00:00Z").getTime() + 86400000);
+        const y = nextDay.getUTCFullYear();
+        const m = String(nextDay.getUTCMonth() + 1).padStart(2, "0");
+        const d = String(nextDay.getUTCDate()).padStart(2, "0");
+        outEl.min = `${y}-${m}-${d}`;
+        if (outEl.value && outEl.value <= inEl.value) {
+          outEl.value = outEl.min;
+        }
+      }
+      recalculate();
+    });
+
+    outEl.addEventListener("change", recalculate);
+    recalculate();
+  })();
+</script>

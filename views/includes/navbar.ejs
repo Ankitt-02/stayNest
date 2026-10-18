@@ -1,0 +1,48 @@
+<nav class="navbar navbar-expand-lg bg-light border-bottom sticky-top">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="/">
+      <i class="fa-solid fa-mountain-city"></i> StayNest
+    </a>
+    <button
+      class="navbar-toggler"
+      type="button"
+      data-bs-toggle="collapse"
+      data-bs-target="#navbarNavAltMarkup"
+    >
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+      <div class="navbar-nav">
+        <a class="nav-link" href="/"><i class="fa-solid fa-house"></i> Home</a>
+        <a class="nav-link" href="/listings"><i class="fa-solid fa-bars"></i> All Stays</a>
+        <a class="nav-link" href="/listings/new"
+          ><i class="fa-solid fa-plus"></i> Add Stay</a
+        >
+      </div>
+      <div class="navbar-nav ms-auto align-items-center">
+        <% if (!currentUser) { %>
+          <a class="nav-link" href="/signup"><b>Sign up</b></a>
+          <a class="nav-link" href="/login"><b>Log in</b></a>
+        <% } else { %>
+          <a class="nav-link me-2" href="/reservations">
+            <i class="fa-solid fa-suitcase"></i> My Bookings
+          </a>
+          <span class="nav-link text-muted me-2">
+            <i class="fa-solid fa-user"></i> <%= currentUser.name %>
+          </span>
+          <form method="POST" action="/logout" class="d-inline">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+            <button type="submit" class="btn btn-outline-dark btn-sm">Log out</button>
+          </form>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<style>
+  .navbar-brand i {
+    margin-right: 0.5rem;
+    color: #333;
+  }
+</style>

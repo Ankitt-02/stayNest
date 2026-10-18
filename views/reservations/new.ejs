@@ -1,0 +1,159 @@
+<% layout("/layouts/boilerplate") %>
+
+<div class="container my-4">
+  <div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6">
+      <div class="card shadow-sm border rounded-4 overflow-hidden">
+        <!-- Stay Header Image -->
+        <div class="position-relative">
+          <img
+            src="<%= listing.image.url %>"
+            alt="<%= listing.title %>"
+            class="card-img-top object-fit-cover"
+            style="height: 220px;"
+          />
+          <div class="position-absolute bottom-0 start-0 w-100 p-3 bg-dark bg-opacity-50 text-white">
+            <h4 class="fw-bold mb-0"><%= listing.title %></h4>
+            <small><i class="fa-solid fa-location-dot me-1"></i><%= listing.location %>, <%= listing.country %></small>
+          </div>
+        </div>
+
+        <div class="card-body p-4">
+          <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+            <div>
+              <span class="fs-4 fw-bold text-dark">
+                &#8377;<%= (listing.price !== undefined && listing.price !== null) ? listing.price.toLocaleString("en-IN") : "0" %>
+              </span>
+              <span class="text-muted">/ night</span>
+            </div>
+            <span class="badge bg-light text-secondary border px-3 py-2">
+              <i class="fa-solid fa-shield-halved me-1 text-success"></i> Instant Confirmation
+            </span>
+          </div>
+
+          <form method="POST" action="/listings/<%= listing._id %>/reservations" id="reservationForm">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+
+            <!-- Dates Row -->
+            <div class="row g-2 mb-3">
+              <div class="col-6">
+                <label for="checkInInput" class="form-label small fw-semibold text-secondary mb-1">
+                  <i class="fa-regular fa-calendar-check me-1 text-danger"></i> Check-in
+                </label>
+                <input
+                  type="date"
+                  class="form-control"
+                  id="checkInInput"
+                  name="checkIn"
+                  min="<%= todayStr %>"
+                  value="<%= todayStr %>"
+                  required
+                />
+              </div>
+              <div class="col-6">
+                <label for="checkOutInput" class="form-label small fw-semibold text-secondary mb-1">
+                  <i class="fa-regular fa-calendar-xmark me-1 text-danger"></i> Check-out
+                </label>
+                <input
+                  type="date"
+                  class="form-control"
+                  id="checkOutInput"
+                  name="checkOut"
+                  min="<%= tomorrowStr %>"
+                  value="<%= tomorrowStr %>"
+                  required
+                />
+              </div>
+            </div>
+
+            <!-- Guests -->
+            <div class="mb-3">
+              <label for="guestsInput" class="form-label small fw-semibold text-secondary mb-1">
+                <i class="fa-solid fa-user-group me-1 text-danger"></i> Number of Guests
+              </label>
+              <input
+                type="number"
+                class="form-control"
+                id="guestsInput"
+                name="guests"
+                min="1"
+                max="50"
+                value="1"
+                required
+              />
+              <div class="form-text small">Enter total number of traveling guests.</div>
+            </div>
+
+            <!-- Live Price Summary -->
+            <div class="bg-light p-3 rounded-3 mb-4 border" id="priceSummaryBox">
+              <div class="d-flex justify-content-between mb-2 small text-muted">
+                <span>&#8377;<%= (listing.price !== undefined && listing.price !== null) ? listing.price.toLocaleString("en-IN") : "0" %> &times; <span id="numNightsSpan">1</span> night(s)</span>
+                <span id="subtotalSpan">&#8377;<%= (listing.price !== undefined && listing.price !== null) ? listing.price.toLocaleString("en-IN") : "0" %></span>
+              </div>
+              <hr class="my-2" />
+              <div class="d-flex justify-content-between fw-bold text-dark fs-5">
+                <span>Total Estimated</span>
+                <span id="totalPriceSpan">&#8377;<%= (listing.price !== undefined && listing.price !== null) ? listing.price.toLocaleString("en-IN") : "0" %></span>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              class="btn btn-danger w-100 py-2 fs-5 fw-semibold"
+              style="background-color: #fe424d; border-color: #fe424d;"
+            >
+              <i class="fa-solid fa-calendar-check me-2"></i> Confirm Reservation
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    const nightlyRate = <%= Number(listing.price) || 0 %>;
+    const checkInEl = document.getElementById("checkInInput");
+    const checkOutEl = document.getElementById("checkOutInput");
+    const numNightsSpan = document.getElementById("numNightsSpan");
+    const subtotalSpan = document.getElementById("subtotalSpan");
+    const totalPriceSpan = document.getElementById("totalPriceSpan");
+
+    function updateCalculations() {
+      if (!checkInEl.value || !checkOutEl.value) return;
+      const inDate = new Date(checkInEl.value + "T00:00:00Z");
+      const outDate = new Date(checkOutEl.value + "T00:00:00Z");
+      const diffMs = outDate.getTime() - inDate.getTime();
+      const nights = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+      if (nights >= 1) {
+        const total = nights * nightlyRate;
+        numNightsSpan.textContent = nights;
+        subtotalSpan.textContent = "₹" + total.toLocaleString("en-IN");
+        totalPriceSpan.textContent = "₹" + total.toLocaleString("en-IN");
+      } else {
+        numNightsSpan.textContent = "0";
+        subtotalSpan.textContent = "Invalid dates";
+        totalPriceSpan.textContent = "—";
+      }
+    }
+
+    checkInEl.addEventListener("change", function () {
+      if (checkInEl.value) {
+        const nextDay = new Date(new Date(checkInEl.value + "T00:00:00Z").getTime() + 86400000);
+        const y = nextDay.getUTCFullYear();
+        const m = String(nextDay.getUTCMonth() + 1).padStart(2, "0");
+        const d = String(nextDay.getUTCDate()).padStart(2, "0");
+        checkOutEl.min = `${y}-${m}-${d}`;
+        if (checkOutEl.value && checkOutEl.value <= checkInEl.value) {
+          checkOutEl.value = checkOutEl.min;
+        }
+      }
+      updateCalculations();
+    });
+
+    checkOutEl.addEventListener("change", updateCalculations);
+    updateCalculations();
+  })();
+</script>
